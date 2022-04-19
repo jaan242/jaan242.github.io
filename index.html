@@ -7,7 +7,10 @@
 	<body>
 		<canvas id="myCanvas" width="400" height="400">Your browser does not support the canvas element.</canvas>
 		<br/>
-		<button onclick="drawNew()">Generate</button>
+		<button onclick="onClickReset()">Reset</button>
+		<button onclick="drawNew()">Next</button>
+		<button onclick="startTimer(this)" id="start-btn">Start</button>
+		<button onclick="stopTimer(this)" id="stop-btn" disabled>Stop</button>
 		<script src="js/main.js"></script>
 	</body>
 </html>
