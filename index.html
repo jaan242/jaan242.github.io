@@ -6,11 +6,13 @@
 	</head>
 	<body>
 		<canvas id="myCanvas" width="400" height="400">Your browser does not support the canvas element.</canvas>
+		<canvas id="origCanvas" width="400" height="400">Your browser does not support the canvas element.</canvas>
 		<br/>
 		<button onclick="onClickReset()">Reset</button>
 		<button onclick="drawNew()">Next</button>
 		<button onclick="startTimer(this)" id="start-btn">Start</button>
 		<button onclick="stopTimer(this)" id="stop-btn" disabled>Stop</button>
+		<div>Iterations: <span id="iter-span">0</span></div>
 		<script src="js/main.js"></script>
 	</body>
 </html>
