@@ -7,6 +7,8 @@ var COLOR_DIFF = 5;
 var pixels = [];
 pixels[(canvas.height * canvas.width) - 1] = 0;
 
+var timer;
+
 function randomIntInRange(min, max) {
 	return Math.floor((Math.random() * (max - min + 1)) + min); 
 }
@@ -29,15 +31,20 @@ function formatHex(value) {
 	return str;
 }
 
-function drawNew() {
-	var pixelIndexes = [];
+function resetColors() {
 	for (var i = 0; i < pixels.length; i++) {
-		pixelIndexes[i] = i;
 		pixels[i] = -1;
 	}
+}
+
+function drawNew() {
+	// var pixelIndexes = [];
+	for (var i = 0; i < pixels.length; i++) {
+		// pixelIndexes[i] = i;
+	// }
 	//shuffle(pixelIndexes);
-	for (var idx = 0; idx < pixelIndexes.length; idx++) {
-		var i = pixelIndexes[idx];
+	// for (var idx = 0; idx < pixelIndexes.length; idx++) {
+		// var i = pixelIndexes[idx];
 		var color = 0;
 		var refColor = -1;
 		var neighborPixels = [
@@ -73,5 +80,22 @@ function drawNew() {
 	}
 }
 
-drawNew();
+function startTimer(element) {
+	element.disabled = true;
+	timer = setInterval(drawNew, 1000);
+	document.getElementById("stop-btn").disabled = false;
+}
+
+function stopTimer(element) {
+	element.disabled = true;
+	clearInterval(timer);
+	document.getElementById("start-btn").disabled = false;
+}
+
+function onClickReset() {
+	resetColors();
+	drawNew();
+}
+
+onClickReset();
 
