@@ -78,6 +78,8 @@ function drawNew() {
 		ctx.fillStyle = "#" + formatHex(pixels[i]);
 		ctx.fillRect((i % canvas.width), Math.floor(i / canvas.width), 1, 1);
 	}
+	var iterSpan = document.getElementById("iter-span");
+	iterSpan.innerText = parseInt(iterSpan.innerText) + 1;
 }
 
 function startTimer(element) {
@@ -94,7 +96,14 @@ function stopTimer(element) {
 
 function onClickReset() {
 	resetColors();
+	document.getElementById("iter-span").innerText = "0";
 	drawNew();
+	var canvas = document.getElementById("origCanvas");
+	var ctx = canvas.getContext("2d");
+	for (var i = 0; i < pixels.length; i++) {
+		ctx.fillStyle = "#" + formatHex(pixels[i]);
+		ctx.fillRect((i % canvas.width), Math.floor(i / canvas.width), 1, 1);
+	}
 }
 
 onClickReset();
