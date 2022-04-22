@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<title>Screensaver</title>
 	</head>
-	<body>
+	<body style="background-color: #ddd;">
 		<canvas id="myCanvas" width="400" height="400">Your browser does not support the canvas element.</canvas>
 		<canvas id="origCanvas" width="400" height="400">Your browser does not support the canvas element.</canvas>
 		<br/>
@@ -12,7 +12,10 @@
 		<button onclick="drawNew()">Next</button>
 		<button onclick="startTimer(this)" id="start-btn">Start</button>
 		<button onclick="stopTimer(this)" id="stop-btn" disabled>Stop</button>
+		<input type="range" id="similar-input" min="0" max="256" onchange="updateSimilarInput(this)">
+		<span id="similar-input-span"></span>
 		<div>Iterations: <span id="iter-span">0</span></div>
+		<div>Similar: <span id="similar-span"></span></div>
 		<script src="js/main.js"></script>
 	</body>
 </html>
