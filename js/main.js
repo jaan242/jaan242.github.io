@@ -14,6 +14,8 @@ var neighborVectors = [
 ];
 
 var timer;
+var colorCenter = [];
+var randomBlur = false;
 
 function randomIntInRange(min, max) {
 	return Math.floor((Math.random() * (max - min + 1)) + min); 
@@ -48,6 +50,10 @@ function drawCanvas(canvas) {
 
 function splitColor(color) {
 	return [color >> 16, color >> 8 & 0xFF, color & 0xFF];
+}
+
+function encodeColor(color) {
+	return color[0] << 16 | color[1] << 8 | color[2];
 }
 
 function isSimilarColor(color, other) {
@@ -123,6 +129,61 @@ function updatePixelAverage(i) {
 	pixels[i] = color;
 }
 
+function updatePixelTransfer(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	var max = [];
+	var maxi = [];
+	for (var k = 0; k < 3; k++) {
+		max[k] = color[k];
+		maxi[k] = i;
+	}
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			for (var k = 0; k < 3; k++) {
+				if (refColor[k] > max[k]) {
+					max[k] = refColor[k];
+					maxi[k] = neighbor;
+				}
+			}
+		}
+	}
+	for (var k = 0; k < 3; k++) {
+		if (colorCenter[k]) {
+			if (color[k] == 0) {
+				continue;
+			}
+			var pos = [i % canvas.width, Math.floor(i / canvas.width)];
+			if (colorCenter[k][0] == pos[0] && colorCenter[k][1] == pos[1]) {
+				continue;
+			}
+			var v = [colorCenter[k][0] - pos[0], colorCenter[k][1] - pos[1]];
+			var dist = Math.sqrt(v[0]**2 + v[1]**2);
+			v = [Math.round(v[0] / dist), Math.round(v[1] / dist)];
+			var neighbor = (pos[1] + v[1])*canvas.width + (pos[0] + v[0]);
+			refColor = splitColor(pixels[neighbor]);
+			var diff = Math.min(color[k], 255 - refColor[k]);
+			if (diff > 0) {
+				color[k] -= diff;
+				pixels[i] = encodeColor(color);
+				refColor[k] += diff;
+				pixels[neighbor] = encodeColor(refColor);
+			}
+		} else if (maxi[k] != i) {
+			var diff = Math.floor((max[k] - color[k]) / 2);
+			if (diff > 0) {
+				color[k] += diff;
+				pixels[i] = encodeColor(color);
+				var other = splitColor(pixels[maxi[k]]);
+				other[k] -= diff;
+				pixels[maxi[k]] = encodeColor(other);
+			}
+		}
+	}
+}
+
 function resetColors() {
 	for (var i = 0; i < pixels.length; i++) {
 		pixels[i] = -1;
@@ -134,21 +195,27 @@ function resetColors() {
 }
 
 function drawNew() {
-	var similarCountTotal = 0;
-	for (var i = 0; i < pixels.length; i++) {
-		var similarCount = countSimilarColor(i);
-		// if (70000 < i && i < 90000) {
-		if (similarCount < 4) {
-			updatePixelAverage(i);
-		} else if (similarCount > 4) {
-			updatePixelRandom(i);
-			similarCountTotal++;
+	if (randomBlur) {
+		var similarCountTotal = 0;
+		for (var i = 0; i < pixels.length; i++) {
+			var similarCount = countSimilarColor(i);
+			// if (70000 < i && i < 90000) {
+			if (similarCount < 4) {
+				updatePixelAverage(i);
+			} else if (similarCount > 4) {
+				updatePixelRandom(i);
+				similarCountTotal++;
+			}
+		}
+		document.getElementById("similar-span").innerText = similarCountTotal;
+	} else {
+		for (var i = 0; i < pixels.length; i++) {
+			updatePixelTransfer(i);
 		}
 	}
 	drawCanvas(canvas);
 	var iterSpan = document.getElementById("iter-span");
 	iterSpan.innerText = parseInt(iterSpan.innerText) + 1;
-	document.getElementById("similar-span").innerText = similarCountTotal;
 }
 
 function startTimer(element) {
@@ -165,6 +232,7 @@ function stopTimer(element) {
 
 function updateSimilarInput(element) {
 	document.getElementById("similar-input-span").innerText = element.value;
+	randomBlur = true;
 }
 
 function onClickReset() {
@@ -172,6 +240,11 @@ function onClickReset() {
 	document.getElementById("iter-span").innerText = "0";
 	//drawNew();
 	drawCanvas(document.getElementById("origCanvas"));
+}
+
+function onClickCanvas(event) {
+	colorCenter[document.querySelector('input[name=center]:checked').value] = [event.offsetX, event.offsetY];
+	randomBlur = false;
 }
 
 onClickReset();
