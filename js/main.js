@@ -184,6 +184,98 @@ function updatePixelTransfer(i) {
 	}
 }
 
+function updatePixelTransfer2(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	var ming = color[1];
+	var mingi = i;
+	var maxg = color[1];
+	var maxgi = i;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			if (refColor[1] < ming) {
+				ming = refColor[1];
+				mingi = neighbor;
+			}
+			if (refColor[1] > maxg) {
+				maxg = refColor[1];
+				maxgi = neighbor;
+			}
+		}
+	}
+	if (maxgi != i) {
+		var diff = Math.floor((maxg - color[1]) / 2);
+		if (diff > 0) {
+			color[1] += diff;
+			pixels[i] = encodeColor(color);
+			var other = splitColor(pixels[maxgi]);
+			other[1] -= diff;
+			pixels[maxgi] = encodeColor(other);
+		}
+	}
+	if (mingi != i) {
+		refColor = splitColor(pixels[mingi]);
+		var diff = Math.min(color[2], 255 - refColor[2]);
+		if (diff > 0) {
+			color[2] -= diff;
+			pixels[i] = encodeColor(color);
+			refColor[2] += diff;
+			pixels[mingi] = encodeColor(refColor);
+		}
+	}
+}
+
+function updatePixelTransfer3(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	var maxg = color[1];
+	var maxgi = i;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			if (refColor[1] > maxg) {
+				maxg = refColor[1];
+				maxgi = neighbor;
+			}
+			for (var k = 0; k < 3; k += 2) {
+				if ((k == 0 && neighbor > i) || (k == 2 && neighbor < i)) {
+					var diff = Math.min(color[k], 255 - refColor[k]);
+					if (diff > 0) {
+						color[k] -= diff;
+						pixels[i] = encodeColor(color);
+						refColor[k] += diff;
+						pixels[neighbor] = encodeColor(refColor);
+					}
+				}
+			}
+		}
+	}
+	if (maxgi != i) {
+		var diff = Math.floor((maxg - color[1]) / 2);
+		if (diff > 0) {
+			color[1] += diff;
+			pixels[i] = encodeColor(color);
+			var other = splitColor(pixels[maxgi]);
+			other[1] -= diff;
+			pixels[maxgi] = encodeColor(other);
+		}
+	}
+}
+
+function setColor(col, val) {
+	var result = [];
+	result[pixels.length-1] = 0;
+	for (var i = 0; i < pixels.length; i++) {
+		var color = splitColor(pixels[i]);
+		color[col] = val;
+		result[i] = encodeColor(color);
+	}
+	return result;
+}
+
 function resetColors() {
 	for (var i = 0; i < pixels.length; i++) {
 		pixels[i] = -1;
@@ -193,6 +285,8 @@ function resetColors() {
 	}
 	drawCanvas(canvas);
 }
+
+var updatePixelFunction = updatePixelTransfer;
 
 function drawNew() {
 	if (randomBlur) {
@@ -210,7 +304,7 @@ function drawNew() {
 		document.getElementById("similar-span").innerText = similarCountTotal;
 	} else {
 		for (var i = 0; i < pixels.length; i++) {
-			updatePixelTransfer(i);
+			updatePixelFunction(i);
 		}
 	}
 	drawCanvas(canvas);
