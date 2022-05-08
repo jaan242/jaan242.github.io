@@ -5,6 +5,7 @@
 		<title>Screensaver</title>
 	</head>
 	<body style="background-color: #ddd;">
+		<canvas id="zoomCanvas" width="400" height="400" onclick="onClickZoomCanvas(event)">Your browser does not support the canvas element.</canvas>
 		<canvas id="myCanvas" width="400" height="400" onclick="onClickCanvas(event)">Your browser does not support the canvas element.</canvas>
 		<canvas id="origCanvas" width="400" height="400">Your browser does not support the canvas element.</canvas>
 		<br/>
@@ -19,6 +20,7 @@
 		<input type="radio" name="center" value="2">
 		<div>Iterations: <span id="iter-span">0</span></div>
 		<div>Similar: <span id="similar-span"></span></div>
+		<div id="col-div"></div>
 		<script src="js/main.js"></script>
 	</body>
 </html>

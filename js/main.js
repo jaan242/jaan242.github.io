@@ -17,6 +17,11 @@ var timer;
 var colorCenter = [];
 var randomBlur = false;
 
+var ZOOM_LEVEL = 8;
+var zoomWidth = canvas.width / ZOOM_LEVEL;
+var zoomHeight = canvas.height / ZOOM_LEVEL;
+var zoomOffset = 0;
+
 function randomIntInRange(min, max) {
 	return Math.floor((Math.random() * (max - min + 1)) + min); 
 }
@@ -46,6 +51,25 @@ function drawCanvas(canvas) {
 		ctx.fillStyle = "#" + formatHex(pixels[i]);
 		ctx.fillRect((i % canvas.width), Math.floor(i / canvas.width), 1, 1);
 	}
+}
+
+function drawZoomCanvas() {
+	var canvas = document.getElementById("zoomCanvas");
+	var ctx = canvas.getContext("2d");
+	ctx.clearRect(0,0,canvas.width,canvas.height);
+	for (var j = 0; j < zoomHeight; j++) {
+		for (var i = 0; i < zoomWidth; i++) {
+			ctx.fillStyle = "#" + formatHex(pixels[zoomOffset + j*canvas.width + i]);
+			ctx.fillRect(i*ZOOM_LEVEL, j*ZOOM_LEVEL, ZOOM_LEVEL, ZOOM_LEVEL);
+		}
+	}
+}
+
+function setZoomCenter(x, y) {
+	x = Math.max(0, Math.min(x - (zoomWidth / 2), canvas.width - zoomWidth));
+	y = Math.max(0, Math.min(y - (zoomHeight / 2), canvas.height - zoomHeight));
+	zoomOffset = y*canvas.width + x;
+	drawZoomCanvas();
 }
 
 function splitColor(color) {
@@ -310,6 +334,7 @@ function drawNew() {
 	drawCanvas(canvas);
 	var iterSpan = document.getElementById("iter-span");
 	iterSpan.innerText = parseInt(iterSpan.innerText) + 1;
+	drawZoomCanvas();
 }
 
 function startTimer(element) {
@@ -337,8 +362,20 @@ function onClickReset() {
 }
 
 function onClickCanvas(event) {
-	colorCenter[document.querySelector('input[name=center]:checked').value] = [event.offsetX, event.offsetY];
-	randomBlur = false;
+	var checkedCenter = document.querySelector('input[name=center]:checked');
+	if (checkedCenter) {
+		colorCenter[checkedCenter.value] = [event.offsetX, event.offsetY];
+		randomBlur = false;
+	} else {
+		setZoomCenter(event.offsetX, event.offsetY);
+	}
+}
+
+function onClickZoomCanvas(event) {
+	var x = Math.floor(event.offsetX / ZOOM_LEVEL);
+	var y = Math.floor(event.offsetY / ZOOM_LEVEL);
+	var color = splitColor(pixels[zoomOffset + y*canvas.width + x]);
+	document.getElementById("col-div").innerText = "R: " + color[0] + " G: " + color[1] + " B: " + color[2];
 }
 
 onClickReset();
