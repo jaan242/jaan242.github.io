@@ -289,6 +289,162 @@ function updatePixelTransfer3(i) {
 	}
 }
 
+function updatePixelTransfer4(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	var max = [];
+	var maxi = [];
+	for (var k = 0; k < 3; k++) {
+		max[k] = color[k];
+		maxi[k] = i;
+	}
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			for (var k = 0; k < 3; k++) {
+				if (refColor[k] > max[k]) {
+					max[k] = refColor[k];
+					maxi[k] = neighbor;
+				}
+			}
+		}
+	}
+	for (var k = 0; k < 3; k++) {
+		if (maxi[k] != i) {
+			var max2 = color[k];
+			var maxi2 = i;
+			for (var j = 0; j < neighborVectors.length; j++) {
+				var neighbor = i + neighborVectors[j];
+				if (0 <= neighbor && neighbor < pixels.length) {
+					refColor = splitColor(pixels[neighbor]);
+					if (refColor[k] > max2 && neighbor != maxi[k]) {
+						max2 = refColor[k];
+						maxi2 = neighbor;
+					}
+				}
+			}
+			if (maxi2 != i) {
+				var diff = Math.floor((max2 - color[k]) / 2);
+				if (diff > 0) {
+					color[k] += diff;
+					pixels[i] = encodeColor(color);
+					var other = splitColor(pixels[maxi2]);
+					other[k] -= diff;
+					pixels[maxi2] = encodeColor(other);
+				}
+			}
+		}
+	}
+}
+
+var directionVectors = [
+	-canvas.width, -1, 1, canvas.width
+];
+var transferVectors = [
+	-canvas.width - 1, canvas.width - 1, 
+	-canvas.width + 1, canvas.width + 1
+];
+
+function updatePixelTransfer5(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	for (var k = 0; k < 3; k++) {
+		if (color[k] == 255) {
+			for (var j = 0; j < directionVectors.length; j++) {
+				var neighbor = i + directionVectors[j];
+				if (0 <= neighbor && neighbor < pixels.length) {
+					refColor = splitColor(pixels[neighbor]);
+					if (refColor[k] < 150) {
+						var ti = i + transferVectors[j];
+						if (0 <= ti && ti < pixels.length) {
+							var source = splitColor(pixels[ti]);
+							if (source[k] > 0) {
+								var diff = Math.min(source[k], 150 - refColor[k]);
+								source[k] -= diff;
+								pixels[ti] = encodeColor(source);
+								refColor[k] += diff;
+								pixels[neighbor] = encodeColor(refColor);
+							}
+						}
+					}
+				}
+			}
+		} else if (color[k] >= 150) {
+			var si = i;
+			var di = i;
+			for (var j = 0; j < directionVectors.length; j++) {
+				var neighbor = i + directionVectors[j];
+				var oi = i - directionVectors[j];
+				if (0 <= neighbor && neighbor < pixels.length && 0 <= oi && oi < pixels.length) {
+					refColor = splitColor(pixels[oi]);
+					if (refColor[k] > color[k]) {
+						si = oi;
+						di = neighbor;
+						break;
+					}
+				}
+			}
+			if (di != i) {
+				var max = color[k] - 1;
+				refColor = splitColor(pixels[di]);
+				if (refColor[k] < max) {
+					for (var j = 0; j < neighborVectors.length && refColor[k] < max; j++) {
+						var neighbor = i + neighborVectors[j];
+						if (0 <= neighbor && neighbor < pixels.length 
+							&& neighbor != si && neighbor != di) {
+							var source = splitColor(pixels[neighbor]);
+							if (source[k] > 0) {
+								var diff = Math.min(source[k], max - refColor[k]);
+								source[k] -= diff;
+								pixels[neighbor] = encodeColor(source);
+								refColor[k] += diff;
+								pixels[di] = encodeColor(refColor);
+							}
+						}
+					}
+					if ((color[k] - refColor[k]) > 2) {
+						var sum = color[k] + refColor[k];
+						var avg = sum / 2;
+						avg = sum % 2 == 1 ? Math.floor(avg) : (avg - 1);
+						var diff = Math.min(color[k] - 150, avg - refColor[k]);
+						color[k] -= diff;
+						pixels[i] = encodeColor(color);
+						refColor[k] += diff;
+						pixels[di] = encodeColor(refColor);
+					}
+				}
+			}
+		}
+	}
+}
+
+function updatePixelTransfer61(i, k) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			var kv = (neighbor % canvas.width) % 3;
+			var kh = Math.floor(neighbor / canvas.width) % 3;
+			var diff = Math.min(255 - color[k], (k == kv || k == kh) ? Math.floor((refColor[k] - color[k]) / 2) : refColor[k]);
+			if (diff > 0) {
+				color[k] += diff;
+				pixels[i] = encodeColor(color);
+				refColor[k] -= diff;
+				pixels[neighbor] = encodeColor(refColor);
+				break;
+			}
+		}
+	}
+}
+
+function updatePixelTransfer6(i) {
+	updatePixelTransfer61(i, (i % canvas.width) % 3);
+	updatePixelTransfer61(i, Math.floor(i / canvas.width) % 3);
+}
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
