@@ -1,6 +1,8 @@
 // Create the canvas
 var canvas = document.getElementById("myCanvas");
 var similarInput = document.getElementById("similar-input");
+var drawRadio = document.querySelector('input[name=clickaction][value=draw]');
+var drawCheck = document.getElementById("draw-check");
 
 var COLOR_DIFF = 5;
 
@@ -16,6 +18,9 @@ var neighborVectors = [
 var timer;
 var colorCenter = [];
 var randomBlur = false;
+
+var mouseDown = false;
+var drawColor = 0;
 
 var ZOOM_LEVEL = 8;
 var zoomWidth = canvas.width / ZOOM_LEVEL;
@@ -154,6 +159,9 @@ function updatePixelAverage(i) {
 }
 
 function updatePixelTransfer(i) {
+	if (drawCheck.checked && pixels[i] == drawColor) {
+		return;
+	}
 	var color = splitColor(pixels[i]);
 	var refColor = -1;
 	var max = [];
@@ -165,6 +173,9 @@ function updatePixelTransfer(i) {
 	for (var j = 0; j < neighborVectors.length; j++) {
 		var neighbor = i + neighborVectors[j];
 		if (0 <= neighbor && neighbor < pixels.length) {
+			if (drawCheck.checked && pixels[neighbor] == drawColor) {
+				continue;
+			}
 			refColor = splitColor(pixels[neighbor]);
 			for (var k = 0; k < 3; k++) {
 				if (refColor[k] > max[k]) {
@@ -532,6 +543,26 @@ function onClickZoomCanvas(event) {
 	var y = Math.floor(event.offsetY / ZOOM_LEVEL);
 	var color = splitColor(pixels[zoomOffset + y*canvas.width + x]);
 	document.getElementById("col-div").innerText = "R: " + color[0] + " G: " + color[1] + " B: " + color[2];
+}
+
+function onMouseDownCanvas(event) {
+	mouseDown = true;
+}
+
+function onMouseMoveCanvas(event) {
+	if (mouseDown && drawRadio.checked) {
+		pixels[event.offsetY*canvas.width + event.offsetX] = drawColor;
+		var ctx = canvas.getContext("2d");
+		ctx.fillStyle = "#" + formatHex(drawColor);
+		ctx.fillRect(event.offsetX, event.offsetY, 1, 1);
+	}
+}
+
+function onMouseUpCanvas(event) {
+	mouseDown = false;
+	if (drawRadio.checked) {
+		drawZoomCanvas();
+	}
 }
 
 onClickReset();
