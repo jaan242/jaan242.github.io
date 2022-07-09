@@ -518,12 +518,12 @@ function onClickReset() {
 }
 
 function onClickCanvas(event) {
-	var checkedCenter = document.querySelector('input[name=center]:checked');
-	if (checkedCenter) {
-		colorCenter[checkedCenter.value] = [event.offsetX, event.offsetY];
-		randomBlur = false;
-	} else {
+	var checkedClickAction = document.querySelector('input[name=clickaction]:checked');
+	if (!checkedClickAction || checkedClickAction.value == "zoom") {
 		setZoomCenter(event.offsetX, event.offsetY);
+	} else {
+		colorCenter[checkedClickAction.value] = [event.offsetX, event.offsetY];
+		randomBlur = false;
 	}
 }
 
