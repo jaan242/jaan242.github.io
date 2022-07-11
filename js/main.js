@@ -3,11 +3,13 @@ var canvas = document.getElementById("myCanvas");
 var similarInput = document.getElementById("similar-input");
 var drawRadio = document.querySelector('input[name=clickaction][value=draw]');
 var drawCheck = document.getElementById("draw-check");
+var randomCheck = document.getElementById("random-check");
 
 var COLOR_DIFF = 5;
+var MOVE_DIFF = 5;
 
 var pixels = [];
-pixels[(canvas.height * canvas.width) - 1] = 0;
+pixels[(canvas.height * canvas.width) - 1] = 0; // sets pixels.length
 
 var neighborVectors = [
 	-canvas.width - 1, -canvas.width, -canvas.width + 1,
@@ -156,6 +158,19 @@ function updatePixelAverage(i) {
 	var colorB = sumB / sumCount;
 	color = colorR << 16 | colorG << 8 | colorB;
 	pixels[i] = color;
+}
+
+function beforePixelUpdate() {
+	if (randomCheck.checked) {
+		for (var k = 0; k < 3; k++) {
+			if (colorCenter[k]) {
+				colorCenter[k][0] = randomIntInRange(Math.max(0, colorCenter[k][0] - MOVE_DIFF), Math.min(canvas.width - 1, colorCenter[k][0] + MOVE_DIFF));
+				colorCenter[k][1] = randomIntInRange(Math.max(0, colorCenter[k][1] - MOVE_DIFF), Math.min(canvas.height - 1, colorCenter[k][1] + MOVE_DIFF));
+			} else {
+				colorCenter[k] = [randomIntInRange(0, canvas.width - 1), randomIntInRange(0, canvas.height - 1)];
+			}
+		}
+	}
 }
 
 function updatePixelTransfer(i) {
@@ -477,6 +492,7 @@ function resetColors() {
 	drawCanvas(canvas);
 }
 
+var beforePixelFunction = beforePixelUpdate;
 var updatePixelFunction = updatePixelTransfer;
 
 function drawNew() {
@@ -494,6 +510,7 @@ function drawNew() {
 		}
 		document.getElementById("similar-span").innerText = similarCountTotal;
 	} else {
+		beforePixelFunction();
 		for (var i = 0; i < pixels.length; i++) {
 			updatePixelFunction(i);
 		}
@@ -519,6 +536,18 @@ function stopTimer(element) {
 function updateSimilarInput(element) {
 	document.getElementById("similar-input-span").innerText = element.value;
 	randomBlur = true;
+}
+
+function onChangeFunction(element) {
+	switch (element.value) {
+		case "center":
+			updatePixelFunction = updatePixelTransfer;
+			break;
+		case "waterland":
+			pixels = setColor(0, 0);
+			updatePixelFunction = updatePixelTransfer2;
+			break;
+	}
 }
 
 function onClickReset() {
