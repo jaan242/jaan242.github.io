@@ -19,7 +19,7 @@ var neighborVectors = [
 
 var timer;
 var colorCenter = [];
-var randomBlur = false;
+var similarCountTotal = 0;
 
 var mouseDown = false;
 var drawColor = 0;
@@ -160,6 +160,16 @@ function updatePixelAverage(i) {
 	pixels[i] = color;
 }
 
+function updatePixelRandomFade(i) {
+	var similarCount = countSimilarColor(i);
+	if (similarCount < 4) {
+		updatePixelAverage(i);
+	} else if (similarCount > 4) {
+		updatePixelRandom(i);
+		similarCountTotal++;
+	}
+}
+
 function beforePixelUpdate() {
 	if (randomCheck.checked) {
 		for (var k = 0; k < 3; k++) {
@@ -201,7 +211,14 @@ function updatePixelTransfer(i) {
 		}
 	}
 	for (var k = 0; k < 3; k++) {
-		if (colorCenter[k]) {
+		var diff = Math.floor((max[k] - color[k]) / 2);
+		if (diff > similarInput.value) {
+			color[k] += diff;
+			pixels[i] = encodeColor(color);
+			var other = splitColor(pixels[maxi[k]]);
+			other[k] -= diff;
+			pixels[maxi[k]] = encodeColor(other);
+		} else if (colorCenter[k]) {
 			if (color[k] == 0) {
 				continue;
 			}
@@ -220,15 +237,6 @@ function updatePixelTransfer(i) {
 				pixels[i] = encodeColor(color);
 				refColor[k] += diff;
 				pixels[neighbor] = encodeColor(refColor);
-			}
-		} else if (maxi[k] != i) {
-			var diff = Math.floor((max[k] - color[k]) / 2);
-			if (diff > 0) {
-				color[k] += diff;
-				pixels[i] = encodeColor(color);
-				var other = splitColor(pixels[maxi[k]]);
-				other[k] -= diff;
-				pixels[maxi[k]] = encodeColor(other);
 			}
 		}
 	}
@@ -496,28 +504,19 @@ var beforePixelFunction = beforePixelUpdate;
 var updatePixelFunction = updatePixelTransfer;
 
 function drawNew() {
-	if (randomBlur) {
-		var similarCountTotal = 0;
-		for (var i = 0; i < pixels.length; i++) {
-			var similarCount = countSimilarColor(i);
-			// if (70000 < i && i < 90000) {
-			if (similarCount < 4) {
-				updatePixelAverage(i);
-			} else if (similarCount > 4) {
-				updatePixelRandom(i);
-				similarCountTotal++;
-			}
-		}
-		document.getElementById("similar-span").innerText = similarCountTotal;
-	} else {
-		beforePixelFunction();
-		for (var i = 0; i < pixels.length; i++) {
-			updatePixelFunction(i);
-		}
+	similarCountTotal = 0;
+	
+	beforePixelFunction();
+	for (var i = 0; i < pixels.length; i++) {
+		updatePixelFunction(i);
 	}
+	
 	drawCanvas(canvas);
+	
 	var iterSpan = document.getElementById("iter-span");
 	iterSpan.innerText = parseInt(iterSpan.innerText) + 1;
+	document.getElementById("similar-span").innerText = similarCountTotal;
+	
 	drawZoomCanvas();
 }
 
@@ -535,7 +534,6 @@ function stopTimer(element) {
 
 function updateSimilarInput(element) {
 	document.getElementById("similar-input-span").innerText = element.value;
-	randomBlur = true;
 }
 
 function onChangeFunction(element) {
@@ -546,6 +544,9 @@ function onChangeFunction(element) {
 		case "waterland":
 			pixels = setColor(0, 0);
 			updatePixelFunction = updatePixelTransfer2;
+			break;
+		case "randomfade":
+			updatePixelFunction = updatePixelRandomFade;
 			break;
 	}
 }
@@ -563,7 +564,6 @@ function onClickCanvas(event) {
 		setZoomCenter(event.offsetX, event.offsetY);
 	} else {
 		colorCenter[checkedClickAction.value] = [event.offsetX, event.offsetY];
-		randomBlur = false;
 	}
 }
 
