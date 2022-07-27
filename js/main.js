@@ -172,6 +172,7 @@ function updatePixelRandomFade(i) {
 
 function beforePixelUpdate() {
 	if (randomCheck.checked) {
+		shuffle(neighborVectors);
 		for (var k = 0; k < 3; k++) {
 			if (colorCenter[k]) {
 				colorCenter[k][0] = randomIntInRange(Math.max(0, colorCenter[k][0] - MOVE_DIFF), Math.min(canvas.width - 1, colorCenter[k][0] + MOVE_DIFF));
@@ -479,6 +480,61 @@ function updatePixelTransfer6(i) {
 	updatePixelTransfer61(i, Math.floor(i / canvas.width) % 3);
 }
 
+function updatePixelBurn(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	var ming = color[1];
+	var mingi = i;
+	var maxg = color[1];
+	var maxgi = i;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			if (refColor[1] < ming) {
+				ming = refColor[1];
+				mingi = neighbor;
+			}
+			if (refColor[1] > maxg) {
+				maxg = refColor[1];
+				maxgi = neighbor;
+			}
+		}
+	}
+	if (maxgi != i) {
+		var diff = Math.floor((maxg - color[1]) / 2);
+		if (diff > 0) {
+			color[1] += diff;
+			pixels[i] = encodeColor(color);
+			var other = splitColor(pixels[maxgi]);
+			other[1] -= diff;
+			pixels[maxgi] = encodeColor(other);
+		}
+	}
+	if (mingi != i) {
+		refColor = splitColor(pixels[mingi]);
+		var diff = Math.min(color[2], 255 - refColor[2]);
+		if (diff > 0) {
+			color[2] -= diff;
+			pixels[i] = encodeColor(color);
+			refColor[2] += diff;
+			pixels[mingi] = encodeColor(refColor);
+		}
+	}
+	if (color[0] > 0) {
+		if (color[2] > 0) {
+			color[0] = Math.max(color[0] - similarInput.value, 0);
+			color[2] = Math.max(color[2] - similarInput.value, 0);
+		} else if (color[1] > 0) {
+			color[0] = Math.min(color[0] + parseInt(similarInput.value), 255);
+			color[1] = Math.max(color[1] - similarInput.value, 0);
+		} else {
+			color[0] = Math.max(color[0] - similarInput.value, 0);
+		}
+		pixels[i] = encodeColor(color);
+	}
+}
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
@@ -547,6 +603,10 @@ function onChangeFunction(element) {
 			break;
 		case "randomfade":
 			updatePixelFunction = updatePixelRandomFade;
+			break;
+		case "burn":
+			updatePixelFunction = updatePixelBurn;
+			similarInput.value = 20;
 			break;
 	}
 }
