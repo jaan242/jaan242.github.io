@@ -535,6 +535,85 @@ function updatePixelBurn(i) {
 	}
 }
 
+function updatePixelEco(i) {
+	var color = splitColor(pixels[i]);
+	if (color[0] > 0) {
+		var move = i;
+		if (color[0] < 200) {
+			for (var j = 0; j < neighborVectors.length; j++) {
+				var neighbor = i + neighborVectors[j];
+				if (0 <= neighbor && neighbor < pixels.length) {
+					var other = splitColor(pixels[neighbor]);
+					if (other[0] == 0) {
+						move = neighbor;
+						if (other[2] > 0) {
+							var col = color[0] + other[2];
+							if (col > 255) {
+								other[0] = 255;
+								color[0] = col - 255;
+							} else {
+								color[0] = col;
+							}
+							other[2] = 0;
+							pixels[neighbor] = encodeColor(other);
+							pixels[i] = encodeColor(color);
+							return;
+						}
+					}
+				}
+			}
+		}
+		color[0] = Math.max(color[0] - similarInput.value, 0);
+		pixels[i] = encodeColor(color);
+		if (color[0] == 0) {
+			return;
+		}
+		if (move != i) {
+			var other = splitColor(pixels[move]);
+			other[0] = color[0];
+			pixels[move] = encodeColor(other);
+			color[0] = 0;
+			pixels[i] = encodeColor(color);
+		}
+	} else if (color[2] > 0) {
+		var leave = 0;
+		if (color[1] > 0) {
+			color[1] = Math.max(color[1] - similarInput.value, 0);
+			var col = color[2] + parseInt(similarInput.value);
+			if (col > 255) {
+				color[2] = 255;
+				leave = col - 255;
+			} else {
+				color[2] = col;
+			}
+		} else {
+			leave = color[2];
+			color[2] = 0;
+		}
+		if (leave > 0) {
+			for (var j = 0; j < neighborVectors.length; j++) {
+				var neighbor = i + neighborVectors[j];
+				if (0 <= neighbor && neighbor < pixels.length) {
+					var other = splitColor(pixels[neighbor]);
+					if (other[0] == 0 && other[1] > 0 && other[2] == 0) {
+						other[2] = leave;
+						pixels[neighbor] = encodeColor(other);
+						pixels[i] = encodeColor(color);
+						return;
+					}
+				}
+			}
+			if (color[2] == 0) {
+				color[2] = Math.max(leave - similarInput.value, 0);
+			}
+		}
+		pixels[i] = encodeColor(color);
+	} else {
+		color[1] = Math.min(color[1] + parseInt(similarInput.value), 150);
+		pixels[i] = encodeColor(color);
+	}
+}
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
@@ -607,6 +686,9 @@ function onChangeFunction(element) {
 		case "burn":
 			updatePixelFunction = updatePixelBurn;
 			similarInput.value = 20;
+			break;
+		case "eco":
+			updatePixelFunction = updatePixelEco;
 			break;
 	}
 }
