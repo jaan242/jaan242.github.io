@@ -539,7 +539,7 @@ function updatePixelEco(i) {
 	var color = splitColor(pixels[i]);
 	if (color[0] > 0) {
 		var move = i;
-		if (color[0] < 200) {
+		if (color[0] < 180) {
 			for (var j = 0; j < neighborVectors.length; j++) {
 				var neighbor = i + neighborVectors[j];
 				if (0 <= neighbor && neighbor < pixels.length) {
@@ -563,7 +563,7 @@ function updatePixelEco(i) {
 				}
 			}
 		}
-		color[0] = Math.max(color[0] - similarInput.value, 0);
+		color[0] = Math.max(color[0] - 5, 0);
 		pixels[i] = encodeColor(color);
 		if (color[0] == 0) {
 			return;
@@ -578,8 +578,9 @@ function updatePixelEco(i) {
 	} else if (color[2] > 0) {
 		var leave = 0;
 		if (color[1] > 0) {
-			color[1] = Math.max(color[1] - similarInput.value, 0);
-			var col = color[2] + parseInt(similarInput.value);
+			var col = Math.min(color[1], similarInput.value);
+			color[1] -= col;
+			col = color[2] + col;
 			if (col > 255) {
 				color[2] = 255;
 				leave = col - 255;
@@ -609,7 +610,7 @@ function updatePixelEco(i) {
 		}
 		pixels[i] = encodeColor(color);
 	} else {
-		color[1] = Math.min(color[1] + parseInt(similarInput.value), 150);
+		color[1] = Math.min(color[1] + 1, 150);
 		pixels[i] = encodeColor(color);
 	}
 }
