@@ -676,6 +676,87 @@ function updatePixelVege(i) {
 	pixels[i] = encodeColor(color);
 }
 
+function getMaxColor(color) {
+	if (color[0] > color[1] && color[0] > color[2]) {
+		return 0;
+	} else if (color[1] > color[0] && color[1] > color[2]) {
+		return 1;
+	} else if (color[2] > color[0] && color[2] > color[1]) {
+		return 2;
+	} else {
+		return -1;
+	}
+}
+
+function updatePixelFront(i) {
+	var color = splitColor(pixels[i]);
+	var k = getMaxColor(color);
+	for (var c = 0; c < 3; c++) {
+		if (c == k) continue;
+		var refColor = -1;
+		var max = color[c];
+		var maxi = i;
+		for (var j = 0; j < neighborVectors.length; j++) {
+			var neighbor = i + neighborVectors[j];
+			if (0 <= neighbor && neighbor < pixels.length) {
+				refColor = splitColor(pixels[neighbor]);
+				if (getMaxColor(refColor) != c && refColor[c] > max) {
+					max = refColor[c];
+					maxi = neighbor;
+				}
+			}
+		}
+		if (maxi != i) {
+			var diff = Math.floor((max - color[c]) / 2);
+			if (diff > 0) {
+				color[c] += diff;
+				pixels[i] = encodeColor(color);
+				var other = splitColor(pixels[maxi]);
+				other[c] -= diff;
+				pixels[maxi] = encodeColor(other);
+			}
+		}
+	}
+	if (k == -1 || color[k] == 255) {
+		return;
+	}
+	var refColor = -1;
+	var max = color[k];
+	var maxi = i;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			if (refColor[k] == 0) continue;
+			if (getMaxColor(refColor) == k) {
+				if (refColor[k] > max) {
+					max = refColor[k];
+					maxi = neighbor;
+				}
+			} else {
+				var diff = Math.min(refColor[k], 255 - color[k]);
+				color[k] += diff;
+				pixels[i] = encodeColor(color);
+				refColor[k] -= diff;
+				pixels[neighbor] = encodeColor(refColor);
+				if (color[k] == 255) {
+					return;
+				}
+			}
+		}
+	}
+	if (maxi != i) {
+		var diff = Math.floor((max - color[k]) / 2);
+		if (diff > 0) {
+			color[k] += diff;
+			pixels[i] = encodeColor(color);
+			var other = splitColor(pixels[maxi]);
+			other[k] -= diff;
+			pixels[maxi] = encodeColor(other);
+		}
+	}
+}
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
@@ -756,6 +837,9 @@ function onChangeFunction(element) {
 			pixels = setColor(0, 0);
 			pixels = setColor(1, 0);
 			updatePixelFunction = updatePixelVege;
+			break;
+		case "front":
+			updatePixelFunction = updatePixelFront;
 			break;
 	}
 }
