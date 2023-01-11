@@ -615,6 +615,67 @@ function updatePixelEco(i) {
 	}
 }
 
+function updatePixelVege(i) {
+	var color = splitColor(pixels[i]);
+	if (color[2] > 0) {
+		var refColor = -1;
+		var maxb = color[2];
+		var maxbi = i;
+		for (var j = 0; j < neighborVectors.length; j++) {
+			var neighbor = i + neighborVectors[j];
+			if (0 <= neighbor && neighbor < pixels.length) {
+				refColor = splitColor(pixels[neighbor]);
+				if (refColor[2] > maxb) {
+					maxb = refColor[2];
+					maxbi = neighbor;
+				}
+			}
+		}
+		if (maxbi != i) {
+			var diff = Math.floor((maxb - color[2]) / 2);
+			if (diff > 0) {
+				color[2] += diff;
+				pixels[i] = encodeColor(color);
+				var other = splitColor(pixels[maxbi]);
+				other[2] -= diff;
+				pixels[maxbi] = encodeColor(other);
+			}
+		}
+		return;
+	}
+	var refColor = -1;
+	var maxg = 0;
+	var maxgi = i;
+	var maxb = 0;
+	var maxbi = i;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			if (refColor[1] > maxg) {
+				maxg = refColor[1];
+				maxgi = neighbor;
+			}
+			if (refColor[2] > maxb) {
+				maxb = refColor[2];
+				maxbi = neighbor;
+			}
+		}
+	}
+	if (maxb > 200) {
+		var diff = Math.floor(maxb / 2);
+		pixels[i] = encodeColor([0, 0, diff]);
+		var other = splitColor(pixels[maxbi]);
+		other[2] -= diff;
+		pixels[maxbi] = encodeColor(other);
+		return;
+	}
+	maxb = Math.max(maxb, maxg - 10);
+	color[0] = Math.round((255 - maxb) / 3);
+	color[1] = Math.max(maxb, 50);
+	pixels[i] = encodeColor(color);
+}
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
@@ -690,6 +751,11 @@ function onChangeFunction(element) {
 			break;
 		case "eco":
 			updatePixelFunction = updatePixelEco;
+			break;
+		case "vege":
+			pixels = setColor(0, 0);
+			pixels = setColor(1, 0);
+			updatePixelFunction = updatePixelVege;
 			break;
 	}
 }
