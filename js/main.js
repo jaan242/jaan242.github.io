@@ -184,61 +184,69 @@ function beforePixelUpdate() {
 	}
 }
 
-function updatePixelTransfer(i) {
-	if (drawCheck.checked && pixels[i] == drawColor) {
-		return;
+function transferToCenter(i, k, color) {
+	if (colorCenter[k]) {
+		if (color[k] == 0) {
+			return false;
+		}
+		var pos = [i % canvas.width, Math.floor(i / canvas.width)];
+		if (colorCenter[k][0] == pos[0] && colorCenter[k][1] == pos[1]) {
+			return false;
+		}
+		var v = [colorCenter[k][0] - pos[0], colorCenter[k][1] - pos[1]];
+		var dist = Math.sqrt(v[0]**2 + v[1]**2);
+		v = [Math.round(v[0] / dist), Math.round(v[1] / dist)];
+		var neighbor = (pos[1] + v[1])*canvas.width + (pos[0] + v[0]);
+		var other = splitColor(pixels[neighbor]);
+		var diff = Math.min(color[k], 255 - other[k]);
+		if (diff > 0) {
+			color[k] -= diff;
+			pixels[i] = encodeColor(color);
+			other[k] += diff;
+			pixels[neighbor] = encodeColor(other);
+			return true;
+		}
 	}
-	var color = splitColor(pixels[i]);
-	var refColor = -1;
-	var max = [];
-	var maxi = [];
-	for (var k = 0; k < 3; k++) {
-		max[k] = color[k];
-		maxi[k] = i;
-	}
+	return false;
+}
+
+function transferMaxColor(i, k, color) {
+	var max = color[k] + parseInt(similarInput.value);
+	var maxi = i;
 	for (var j = 0; j < neighborVectors.length; j++) {
 		var neighbor = i + neighborVectors[j];
 		if (0 <= neighbor && neighbor < pixels.length) {
 			if (drawCheck.checked && pixels[neighbor] == drawColor) {
 				continue;
 			}
-			refColor = splitColor(pixels[neighbor]);
-			for (var k = 0; k < 3; k++) {
-				if (refColor[k] > max[k]) {
-					max[k] = refColor[k];
-					maxi[k] = neighbor;
-				}
+			var refColor = splitColor(pixels[neighbor]);
+			if (refColor[k] > max) {
+				max = refColor[k];
+				maxi = neighbor;
 			}
 		}
 	}
+	if (maxi == i) {
+		return;
+	}
+	var diff = Math.floor((max - color[k]) / 2);
+	if (diff > 0) {
+		color[k] += diff;
+		pixels[i] = encodeColor(color);
+		var other = splitColor(pixels[maxi]);
+		other[k] -= diff;
+		pixels[maxi] = encodeColor(other);
+	}
+}
+
+function updatePixelTransfer(i) {
+	if (drawCheck.checked && pixels[i] == drawColor) {
+		return;
+	}
+	var color = splitColor(pixels[i]);
 	for (var k = 0; k < 3; k++) {
-		var diff = Math.floor((max[k] - color[k]) / 2);
-		if (diff > similarInput.value) {
-			color[k] += diff;
-			pixels[i] = encodeColor(color);
-			var other = splitColor(pixels[maxi[k]]);
-			other[k] -= diff;
-			pixels[maxi[k]] = encodeColor(other);
-		} else if (colorCenter[k]) {
-			if (color[k] == 0) {
-				continue;
-			}
-			var pos = [i % canvas.width, Math.floor(i / canvas.width)];
-			if (colorCenter[k][0] == pos[0] && colorCenter[k][1] == pos[1]) {
-				continue;
-			}
-			var v = [colorCenter[k][0] - pos[0], colorCenter[k][1] - pos[1]];
-			var dist = Math.sqrt(v[0]**2 + v[1]**2);
-			v = [Math.round(v[0] / dist), Math.round(v[1] / dist)];
-			var neighbor = (pos[1] + v[1])*canvas.width + (pos[0] + v[0]);
-			refColor = splitColor(pixels[neighbor]);
-			var diff = Math.min(color[k], 255 - refColor[k]);
-			if (diff > 0) {
-				color[k] -= diff;
-				pixels[i] = encodeColor(color);
-				refColor[k] += diff;
-				pixels[neighbor] = encodeColor(refColor);
-			}
+		if (!transferToCenter(i, k, color)) {
+			transferMaxColor(i, k, color);
 		}
 	}
 }
