@@ -294,6 +294,33 @@ function updatePixelTransfer2(i) {
 	}
 }
 
+function updatePixelWater(i) {
+	var color = splitColor(pixels[i]);
+	var refColor = -1;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			var diff = Math.floor((refColor[1] + refColor[2] - color[1] - color[2]) / 2);
+			diff = Math.min(refColor[2], 255 - color[2], diff);
+			if (diff > 0) {
+				color[2] += diff;
+				pixels[i] = encodeColor(color);
+				refColor[2] -= diff;
+				pixels[neighbor] = encodeColor(refColor);
+			}
+		}
+	}
+	if (color[0] <= similarInput.value) {
+		color[2] += Math.min(similarInput.value, 255 - color[2]);
+		pixels[i] = encodeColor(color);
+	}
+	if (color[0] >= 255 - similarInput.value) {
+		color[2] -= Math.min(similarInput.value, color[2]);
+		pixels[i] = encodeColor(color);
+	}
+}
+
 function updatePixelTransfer3(i) {
 	var color = splitColor(pixels[i]);
 	var refColor = -1;
@@ -830,6 +857,9 @@ function onChangeFunction(element) {
 		case "waterland":
 			pixels = setColor(0, 0);
 			updatePixelFunction = updatePixelTransfer2;
+			break;
+		case "water":
+			updatePixelFunction = updatePixelWater;
 			break;
 		case "randomfade":
 			updatePixelFunction = updatePixelRandomFade;
