@@ -895,5 +895,21 @@ function onMouseUpCanvas(event) {
 	}
 }
 
+function onResize(event) {
+	if (window.fullScreen) {
+		document.body.style.backgroundColor = "black";
+		document.body.style.textAlign = "center";
+		document.body.style.marginTop = "15%";
+	} else {
+		document.body.style.backgroundColor = "#ddd";
+		document.body.style.textAlign = "";
+		document.body.style.marginTop = "";
+	}
+	for (var i = 5; i < document.body.childNodes.length; i++) {
+		document.body.childNodes[i].hidden = window.fullScreen;
+	}
+}
+addEventListener("resize", onResize);
+
 onClickReset();
 
