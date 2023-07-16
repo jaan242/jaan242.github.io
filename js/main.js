@@ -792,6 +792,74 @@ function updatePixelFront(i) {
 	}
 }
 
+function getOnlyColor(color) {
+	if (color[1] == 0 && color[2] == 0 && color[0] > 0) {
+		return 0;
+	} else if (color[0] == 0 && color[2] == 0 && color[1] > 0) {
+		return 1;
+	} else if (color[0] == 0 && color[1] == 0 && color[2] > 0) {
+		return 2;
+	} else {
+		return -1;
+	}
+}
+
+function updatePixelArea(i) {
+	var color = splitColor(pixels[i]);
+	var k = getOnlyColor(color);
+	if (k == -1) {
+		return;
+	}
+	var refColor = -1;
+	var max = color[k] + 1;
+	var maxi = i;
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			refColor = splitColor(pixels[neighbor]);
+			var kt = getOnlyColor(refColor);
+			if (kt == -1) {
+				var diff = Math.min(similarInput.value, Math.floor(color[k] / 2));
+				if (diff > 0) {
+					color[k] -= diff;
+					pixels[i] = encodeColor(color);
+					refColor[k] = diff;
+					pixels[neighbor] = encodeColor(refColor);
+				}
+			} else if (kt == k) {
+				if (refColor[k] > max) {
+					max = refColor[k];
+					maxi = neighbor;
+				}
+			} else {
+				var diff = Math.min(similarInput.value, color[k], refColor[kt]);
+				if (diff > 0) {
+					color[k] -= diff;
+					pixels[i] = encodeColor(color);
+					refColor[kt] -= diff;
+					pixels[neighbor] = encodeColor(refColor);
+				}
+			}
+		}
+	}
+	if (maxi != i) {
+		var diff = Math.floor((max - color[k]) / 2);
+		if (diff > 0) {
+			color[k] += diff;
+			pixels[i] = encodeColor(color);
+			var other = splitColor(pixels[maxi]);
+			other[k] -= diff;
+			pixels[maxi] = encodeColor(other);
+		}
+	} else {
+		var diff = Math.min(similarInput.value, 255 - color[k]);
+		if (diff > 0) {
+			color[k] += diff;
+			pixels[i] = encodeColor(color);
+		}
+	}
+}
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
@@ -878,6 +946,17 @@ function onChangeFunction(element) {
 			break;
 		case "front":
 			updatePixelFunction = updatePixelFront;
+			break;
+		case "area":
+			var idx = [0, 1, 2];
+			for (var i = 0; i < pixels.length; i++) {
+				var color = splitColor(pixels[i]);
+				idx.sort(function(a, b) { return color[a] - color[b] });
+				color[idx[0]] = 0;
+				color[idx[1]] = 0;
+				pixels[i] = encodeColor(color);
+			}
+			updatePixelFunction = updatePixelArea;
 			break;
 	}
 }
