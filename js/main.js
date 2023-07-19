@@ -301,7 +301,7 @@ function updatePixelWater(i) {
 		var neighbor = i + neighborVectors[j];
 		if (0 <= neighbor && neighbor < pixels.length) {
 			refColor = splitColor(pixels[neighbor]);
-			var diff = Math.floor((refColor[1] + refColor[2] - color[1] - color[2]) / 2);
+			var diff = Math.ceil((refColor[1] + refColor[2] - color[1] - color[2]) / 2);
 			diff = Math.min(refColor[2], 255 - color[2], diff);
 			if (diff > 0) {
 				color[2] += diff;
@@ -311,11 +311,11 @@ function updatePixelWater(i) {
 			}
 		}
 	}
-	if (color[0] <= similarInput.value) {
+	if (color[0] < similarInput.value) {
 		color[2] += Math.min(similarInput.value, 255 - color[2]);
 		pixels[i] = encodeColor(color);
 	}
-	if (color[0] >= 255 - similarInput.value) {
+	if (color[0] > 255 - similarInput.value) {
 		color[2] -= Math.min(similarInput.value, color[2]);
 		pixels[i] = encodeColor(color);
 	}
