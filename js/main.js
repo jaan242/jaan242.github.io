@@ -871,6 +871,18 @@ function setColor(col, val) {
 	return result;
 }
 
+function setColorRect(col, val, startx, starty, sizex, sizey) {
+	var start = starty * canvas.width + startx;
+	for (var y = 0; y < sizey; y++) {
+		for (var x = 0; x < sizex; x++) {
+			var i = start + y * canvas.width + x;
+			var color = splitColor(pixels[i]);
+			color[col] = val;
+			pixels[i] = encodeColor(color);
+		}
+	}
+}
+
 function resetColors() {
 	for (var i = 0; i < pixels.length; i++) {
 		pixels[i] = -1;
