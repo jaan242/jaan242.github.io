@@ -53,11 +53,15 @@ function formatHex(value) {
 
 function drawCanvas(canvas) {
 	var ctx = canvas.getContext("2d");
-	ctx.clearRect(0,0,canvas.width,canvas.height);
+	var id = ctx.createImageData(canvas.width, canvas.height);
+	var d = id.data;
 	for (var i = 0; i < pixels.length; i++) {
-		ctx.fillStyle = "#" + formatHex(pixels[i]);
-		ctx.fillRect((i % canvas.width), Math.floor(i / canvas.width), 1, 1);
+		d[i*4] = pixels[i] >> 16;
+		d[i*4+1] = pixels[i] >> 8 & 0xFF;
+		d[i*4+2] = pixels[i] & 0xFF;
+		d[i*4+3] = 0xFF;
 	}
+	ctx.putImageData( id, 0, 0 );
 }
 
 function drawZoomCanvas() {
