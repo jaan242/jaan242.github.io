@@ -968,6 +968,7 @@ function onChangeFunction(element) {
 			for (var i = 0; i < pixels.length; i++) {
 				var color = splitColor(pixels[i]);
 				idx.sort(function(a, b) { return color[a] - color[b] });
+				color[idx[2]] = Math.max(color[idx[2]] - (color[idx[1]] + color[idx[0]]), 0);
 				color[idx[0]] = 0;
 				color[idx[1]] = 0;
 				pixels[i] = encodeColor(color);
