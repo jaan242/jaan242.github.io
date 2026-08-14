@@ -27,7 +27,8 @@ var drawColor = 0;
 var ZOOM_LEVEL = 8;
 var zoomWidth = canvas.width / ZOOM_LEVEL;
 var zoomHeight = canvas.height / ZOOM_LEVEL;
-var zoomOffset = 0;
+var zoomX = 0;
+var zoomY = 0;
 
 function randomIntInRange(min, max) {
 	return Math.floor((Math.random() * (max - min + 1)) + min); 
@@ -51,35 +52,44 @@ function formatHex(value) {
 	return str;
 }
 
-function drawCanvas(canvas) {
-	var ctx = canvas.getContext("2d");
-	var id = ctx.createImageData(canvas.width, canvas.height);
-	var d = id.data;
+function drawPixels(d) {
 	for (var i = 0; i < pixels.length; i++) {
 		d[i*4] = pixels[i] >> 16;
 		d[i*4+1] = pixels[i] >> 8 & 0xFF;
 		d[i*4+2] = pixels[i] & 0xFF;
 		d[i*4+3] = 0xFF;
 	}
-	ctx.putImageData( id, 0, 0 );
 }
 
-function drawZoomCanvas() {
-	var canvas = document.getElementById("zoomCanvas");
+function drawCanvas(canvas, drawer) {
 	var ctx = canvas.getContext("2d");
-	ctx.clearRect(0,0,canvas.width,canvas.height);
-	for (var j = 0; j < zoomHeight; j++) {
-		for (var i = 0; i < zoomWidth; i++) {
-			ctx.fillStyle = "#" + formatHex(pixels[zoomOffset + j*canvas.width + i]);
-			ctx.fillRect(i*ZOOM_LEVEL, j*ZOOM_LEVEL, ZOOM_LEVEL, ZOOM_LEVEL);
+	var id = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	drawer(id.data);
+	ctx.putImageData(id, 0, 0);
+}
+
+function drawZoom(data) {
+	var source = canvas.getContext("2d").getImageData(zoomX, zoomY, zoomWidth, zoomHeight);
+	for (var y = 0; y < zoomHeight; y++) {
+		for (var x = 0; x < zoomWidth; x++) {
+			for (var zy = 0; zy < ZOOM_LEVEL; zy++) {
+				for (var zx = 0; zx < ZOOM_LEVEL; zx++) {
+					for (var i = 0; i < 4; i++) {
+						data[((y*canvas.width + x)*ZOOM_LEVEL + zy*canvas.width + zx)*4 + i] = source.data[(y*zoomWidth + x)*4 + i];
+					}
+				}
+			}
 		}
 	}
 }
 
+function drawZoomCanvas() {
+	drawCanvas(document.getElementById("zoomCanvas"), drawZoom);
+}
+
 function setZoomCenter(x, y) {
-	x = Math.max(0, Math.min(x - (zoomWidth / 2), canvas.width - zoomWidth));
-	y = Math.max(0, Math.min(y - (zoomHeight / 2), canvas.height - zoomHeight));
-	zoomOffset = y*canvas.width + x;
+	zoomX = Math.max(0, Math.min(x - (zoomWidth / 2), canvas.width - zoomWidth));
+	zoomY = Math.max(0, Math.min(y - (zoomHeight / 2), canvas.height - zoomHeight));
 	drawZoomCanvas();
 }
 
@@ -796,73 +806,88 @@ function updatePixelFront(i) {
 	}
 }
 
-function getOnlyColor(color) {
-	if (color[1] == 0 && color[2] == 0 && color[0] > 0) {
+function* neighbors(i) {
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		if (0 <= neighbor && neighbor < pixels.length) {
+			yield neighbor;
+		}
+	}
+}
+
+var selectableOptions = {};
+var selectedOption = null;
+
+function addSelectOption(k, v) {
+	selectableOptions[k] = v;
+}
+
+function getOnlyColor(i, data) {
+	if (data[i*4 + 1] == 0 && data[i*4 + 2] == 0 && data[i*4 + 0] > 0) {
 		return 0;
-	} else if (color[0] == 0 && color[2] == 0 && color[1] > 0) {
+	} else if (data[i*4 + 0] == 0 && data[i*4 + 2] == 0 && data[i*4 + 1] > 0) {
 		return 1;
-	} else if (color[0] == 0 && color[1] == 0 && color[2] > 0) {
+	} else if (data[i*4 + 0] == 0 && data[i*4 + 1] == 0 && data[i*4 + 2] > 0) {
 		return 2;
 	} else {
 		return -1;
 	}
 }
 
-function updatePixelArea(i) {
-	var color = splitColor(pixels[i]);
-	var k = getOnlyColor(color);
+addSelectOption("area", {
+init() {
+	var idx = [0, 1, 2];
+	for (var i = 0; i < pixels.length; i++) {
+		var color = splitColor(pixels[i]);
+		idx.sort(function(a, b) { return color[a] - color[b] });
+		color[idx[2]] = Math.max(color[idx[2]] - (color[idx[1]] + color[idx[0]]), 0);
+		color[idx[0]] = 0;
+		color[idx[1]] = 0;
+		pixels[i] = encodeColor(color);
+	}
+},
+updatePixelFunction(i, data) {
+	var k = getOnlyColor(i, data);
 	if (k == -1) {
 		return;
 	}
-	var refColor = -1;
-	var max = color[k] + 1;
+	var max = data[i*4 + k] + 1;
 	var maxi = i;
+	//for (const neighbor of neighbors(i)) {
 	for (var j = 0; j < neighborVectors.length; j++) {
 		var neighbor = i + neighborVectors[j];
 		if (0 <= neighbor && neighbor < pixels.length) {
-			refColor = splitColor(pixels[neighbor]);
-			var kt = getOnlyColor(refColor);
+			var kt = getOnlyColor(neighbor, data);
 			if (kt == -1) {
-				var diff = Math.min(similarInput.value, Math.floor(color[k] / 2));
+				var diff = Math.min(similarInput.value, Math.floor(data[i*4 + k] / 2));
 				if (diff > 0) {
-					color[k] -= diff;
-					pixels[i] = encodeColor(color);
-					refColor[k] = diff;
-					pixels[neighbor] = encodeColor(refColor);
+					data[i*4 + k] -= diff;
+					data[neighbor*4 + k] = diff;
 				}
 			} else if (kt == k) {
-				if (refColor[k] > max) {
-					max = refColor[k];
+				if (data[neighbor*4 + k] > max) {
+					max = data[neighbor*4 + k];
 					maxi = neighbor;
 				}
 			} else {
-				var diff = Math.min(similarInput.value, color[k], refColor[kt]);
+				var diff = Math.min(similarInput.value, data[i*4 + k], data[neighbor*4 + kt]);
 				if (diff > 0) {
-					color[k] -= diff;
-					pixels[i] = encodeColor(color);
-					refColor[kt] -= diff;
-					pixels[neighbor] = encodeColor(refColor);
+					data[i*4 + k] -= diff;
+					data[neighbor*4 + kt] -= diff;
 				}
 			}
 		}
 	}
 	if (maxi != i) {
-		var diff = Math.floor((max - color[k]) / 2);
+		var diff = Math.floor((max - data[i*4 + k]) / 2);
 		if (diff > 0) {
-			color[k] += diff;
-			pixels[i] = encodeColor(color);
-			var other = splitColor(pixels[maxi]);
-			other[k] -= diff;
-			pixels[maxi] = encodeColor(other);
+			data[i*4 + k] += diff;
+			data[maxi*4 + k] -= diff;
 		}
 	} else {
-		var diff = Math.min(similarInput.value, 255 - color[k]);
-		if (diff > 0) {
-			color[k] += diff;
-			pixels[i] = encodeColor(color);
-		}
+		data[i*4 + k] += similarInput.valueAsNumber;
 	}
-}
+}});
 
 function setColor(col, val) {
 	var result = [];
@@ -887,6 +912,13 @@ function setColorRect(col, val, startx, starty, sizex, sizey) {
 	}
 }
 
+function canvasToPixels() {
+	const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+	for (var i = 0; i < pixels.length; i++) {
+		pixels[i] = encodeColor([data[i*4], data[i*4 + 1], data[i*4 + 2]]);
+	}
+}
+
 function resetColors() {
 	for (var i = 0; i < pixels.length; i++) {
 		pixels[i] = -1;
@@ -894,21 +926,30 @@ function resetColors() {
 	for (var i = 0; i < pixels.length; i++) {
 		updatePixelRandom(i);
 	}
-	drawCanvas(canvas);
+	drawCanvas(canvas, drawPixels);
 }
 
 var beforePixelFunction = beforePixelUpdate;
 var updatePixelFunction = updatePixelTransfer;
 
+function drawSelectedOption(data) {
+	for (var i = 0; i < pixels.length; i++) {
+		selectedOption.updatePixelFunction(i, data);
+	}
+}
+
 function drawNew() {
 	similarCountTotal = 0;
 	
 	beforePixelFunction();
-	for (var i = 0; i < pixels.length; i++) {
-		updatePixelFunction(i);
+	if (selectedOption) {
+		drawCanvas(canvas, drawSelectedOption);
+	} else {
+		for (var i = 0; i < pixels.length; i++) {
+			updatePixelFunction(i);
+		}
+		drawCanvas(canvas, drawPixels);
 	}
-	
-	drawCanvas(canvas);
 	
 	var iterSpan = document.getElementById("iter-span");
 	iterSpan.innerText = parseInt(iterSpan.innerText) + 1;
@@ -934,6 +975,12 @@ function updateSimilarInput(element) {
 }
 
 function onChangeFunction(element) {
+	if (element.value in selectableOptions) {
+		selectedOption = selectableOptions[element.value];
+		selectedOption.init?.();
+	} else {
+		selectedOption = null;
+	}
 	switch (element.value) {
 		case "center":
 			updatePixelFunction = updatePixelTransfer;
@@ -963,26 +1010,15 @@ function onChangeFunction(element) {
 		case "front":
 			updatePixelFunction = updatePixelFront;
 			break;
-		case "area":
-			var idx = [0, 1, 2];
-			for (var i = 0; i < pixels.length; i++) {
-				var color = splitColor(pixels[i]);
-				idx.sort(function(a, b) { return color[a] - color[b] });
-				color[idx[2]] = Math.max(color[idx[2]] - (color[idx[1]] + color[idx[0]]), 0);
-				color[idx[0]] = 0;
-				color[idx[1]] = 0;
-				pixels[i] = encodeColor(color);
-			}
-			updatePixelFunction = updatePixelArea;
-			break;
 	}
+	drawCanvas(canvas, drawPixels);
 }
 
 function onClickReset() {
 	resetColors();
 	document.getElementById("iter-span").innerText = "0";
 	//drawNew();
-	drawCanvas(document.getElementById("origCanvas"));
+	drawCanvas(document.getElementById("origCanvas"), drawPixels);
 }
 
 function onClickCanvas(event) {
@@ -995,10 +1031,8 @@ function onClickCanvas(event) {
 }
 
 function onClickZoomCanvas(event) {
-	var x = Math.floor(event.offsetX / ZOOM_LEVEL);
-	var y = Math.floor(event.offsetY / ZOOM_LEVEL);
-	var color = splitColor(pixels[zoomOffset + y*canvas.width + x]);
-	document.getElementById("col-div").innerText = "R: " + color[0] + " G: " + color[1] + " B: " + color[2];
+	const data = event.target.getContext("2d").getImageData(event.offsetX, event.offsetY, 1, 1).data;
+	document.getElementById("col-div").innerText = "R: " + data[0] + " G: " + data[1] + " B: " + data[2];
 }
 
 function onMouseDownCanvas(event) {
