@@ -820,6 +820,7 @@ var selectedOption = null;
 
 function addSelectOption(k, v) {
 	selectableOptions[k] = v;
+	document.querySelector("select").add(new Option(k));
 }
 
 function getOnlyColor(i, data) {
