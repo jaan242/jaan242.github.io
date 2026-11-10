@@ -932,8 +932,11 @@ function resetColors() {
 var beforePixelFunction = beforePixelUpdate;
 var updatePixelFunction = updatePixelTransfer;
 
+const FIRST_ACTIVE_PIXEL = canvas.width + 1;
+const LAST_ACTIVE_PIXEL = pixels.length - canvas.width - 1;
+
 function drawSelectedOption(data) {
-	for (var i = 0; i < pixels.length; i++) {
+	for (var i = FIRST_ACTIVE_PIXEL; i < LAST_ACTIVE_PIXEL; i++) {
 		selectedOption.updatePixelFunction(i, data);
 	}
 }
