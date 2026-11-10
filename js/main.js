@@ -890,6 +890,48 @@ updatePixelFunction(i, data) {
 	}
 }});
 
+function getOwner(i, data) {
+	if (data[i*4 + 0] > data[i*4 + 2]) {
+		return 0;
+	} else if (data[i*4 + 2] > data[i*4 + 0]) {
+		return 2;
+	} else {
+		return -1;
+	}
+}
+
+addSelectOption("res", {
+updatePixelFunction(i, data) {
+	var k = getOwner(i, data);
+	if (k == -1) {
+		return;
+	}
+	for (var j = 0; j < neighborVectors.length; j++) {
+		var neighbor = i + neighborVectors[j];
+		var kt = getOwner(neighbor, data);
+		if (kt == -1) {
+			var diff = Math.min(similarInput.value, Math.floor(data[i*4 + k] / 2));
+			if (diff > 0) {
+				data[i*4 + k] -= diff;
+				data[neighbor*4 + k] = diff;
+			}
+		} else if (kt == k) {
+			var diff = Math.floor((data[i*4 + k] - data[neighbor*4 + k]) / 2);
+			if (diff > 0) {
+				data[i*4 + k] -= diff;
+				data[neighbor*4 + k] += diff;
+			}
+		} else {
+			var diff = Math.min(similarInput.value, data[i*4 + k], data[neighbor*4 + kt]);
+			if (diff > 0) {
+				data[i*4 + k] -= diff;
+				data[neighbor*4 + kt] -= diff;
+			}
+		}
+	}
+	data[i*4 + k] += Math.min(similarInput.value, data[i*4 + 1]);
+}});
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
