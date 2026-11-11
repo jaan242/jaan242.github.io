@@ -1021,6 +1021,7 @@ function updateSimilarInput(element) {
 }
 
 function onChangeFunction(element) {
+	canvasToPixels();
 	if (element.value in selectableOptions) {
 		selectedOption = selectableOptions[element.value];
 		selectedOption.init?.();
