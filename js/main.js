@@ -932,6 +932,19 @@ updatePixelFunction(i, data) {
 	data[i*4 + k] += Math.min(similarInput.value, data[i*4 + 1]);
 }});
 
+addSelectOption("home", {
+updatePixelFunction(i, data) {
+	var pos = [i % canvas.width, Math.floor(i / canvas.width)];
+	for (var k = 0; k < 3; k++) {
+		var neighbor = i;
+		for (var p = 0; p < 2; p++)
+			neighbor += Math.sign(colorCenter[k][p] - pos[p]) * Math.pow(canvas.width, p);
+		if (data[neighbor*4 + k]) continue;
+		data[neighbor*4 + k] = data[i*4 + k];
+		data[i*4 + k] = 0;
+	}
+}});
+
 function setColor(col, val) {
 	var result = [];
 	result[pixels.length-1] = 0;
